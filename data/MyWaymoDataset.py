@@ -8,6 +8,7 @@ import copy
 
 import torch
 import torch.nn.functional as F
+import torch.utils.data as data
 
 
 class MyWaymoDataset(torch.utils.data.Dataset):
@@ -70,14 +71,21 @@ class MyWaymoDataset(torch.utils.data.Dataset):
 
 
 if __name__ == "__main__":
-    training_dataset = MyWaymoDataset(
-        data_dir="/home/yukai/Desktop/potr/data/my_waymo/train/train_10_40",
-        source_length=10,
-        target_length=40,
+    waymo_dataset = MyWaymoDataset(
+        data_dir="/home/yukai/Desktop/potr/data/my_waymo/train/train_30_20",
+        source_length=30,
+        target_length=20,
         normalize=True,
     )
+
+    train_length = int(waymo_dataset.__len__() * 0.8)
+    test_length = waymo_dataset.__len__() - train_length
+    train_dataset, test_dataset = data.random_split(
+        waymo_dataset, [train_length, test_length]
+    )
+
     train_dataset_fn = torch.utils.data.DataLoader(
-        training_dataset,
+        train_dataset,
         batch_size=1,
         shuffle=False,
         num_workers=1,
@@ -86,7 +94,5 @@ if __name__ == "__main__":
 
     box_seq, hkp_seq = next(iter(train_dataset_fn))
 with np.printoptions(precision=3, suppress=True):
-    print(f"box sequence shape: {box_seq.shape}, hkp sequence shape: {hkp_seq.shape}")
-    print("First sequence: ")
-    print(box_seq[0, :, 0, :])
-    print(hkp_seq[0, :, 0, :])
+    print(train_dataset.__len__())
+    print(test_dataset.__len__())
