@@ -59,7 +59,7 @@ class ModelFn(object):
         # self._norm_stats = train_dataset_fn.dataset._norm_stats
 
         # Set the time range
-        self._ms_range = [80, 160, 320, 400, 560, 1000]
+        # self._ms_range = [80, 160, 320, 400, 560, 1000]
 
         self.init_model(pose_encoder_fn, pose_decoder_fn)
         self._loss_fn = self.loss_mse  # set the model loss function as mse
@@ -184,19 +184,19 @@ class ModelFn(object):
             )
         )
 
-    # To be deleted
-    # TODO find out how this function works ?maybe to calculate the activity probability loss
-    def computer_selection_loss(self, inputs, target, cols_softmax=False):
-        #!!!Used in function of evaluate_waymo and train_one_epoch!!!
-        """Compute the query entry selection loss.
+        # To be deleted
+        # TODO find out how this function works ?maybe to calculate the activity probability loss
+        # def computer_selection_loss(self, inputs, target, cols_softmax=False):
+        #     #!!!Used in function of evaluate_waymo and train_one_epoch!!!
+        #     """Compute the query entry selection loss.
 
-        Args:
-        inputs: [batch_size, src_len, tgt_len]
-        target: [batch_size, src_len, tgt_len]
-        """
-        axis_ = 2 if cols_softmax else 1
-        # TODO why use softmax to rescale them
-        target = F.softmax(-target, dim=axis_)
+        #     Args:
+        #     inputs: [batch_size, src_len, tgt_len]
+        #     target: [batch_size, src_len, tgt_len]
+        #     """
+        #     axis_ = 2 if cols_softmax else 1
+        #     # TODO why use softmax to rescale them
+        #     target = F.softmax(-target, dim=axis_)
 
         return torch.nn.MSELoss(reduction="mean")(inputs, target)
 
@@ -289,24 +289,24 @@ class ModelFn(object):
         )
 
     # TODO: Change the print range!
-    def print_range_summary(self, mean_mean_errors):
-        mean_eval_error = []
-        for ms in [1, 3, 7, 9, 13, 24]:  #!!!Maybe change it 1:6:40
-            if self._params["target_seq_len"] >= ms + 1:
-                print(" {0:.3f} |".format(mean_mean_errors[ms]), end="")
-                mean_eval_error.append(mean_mean_errors[ms])
-            else:
-                print("   n/a |", end="")
-        print()
-        return mean_eval_error
+    # def print_range_summary(self, mean_mean_errors):
+    #     mean_eval_error = []
+    #     for ms in [1, 3, 7, 9, 13, 24]:  #!!!Maybe change it 1:6:40
+    #         if self._params["target_seq_len"] >= ms + 1:
+    #             print(" {0:.3f} |".format(mean_mean_errors[ms]), end="")
+    #             mean_eval_error.append(mean_mean_errors[ms])
+    #         else:
+    #             print("   n/a |", end="")
+    #     print()
+    #     return mean_eval_error
 
-    def flush_curves(self):
-        path_ = os.path.join(self._params["model_prefix"], "loss_info")
-        os.makedirs(path_, exist_ok=True)
-        path_ = os.path.join(path_, "eval_time_range.npy")
-        np.save(path_, np.concatenate(self._time_range_eval, axis=0))
-        path_ = os.path.join(path_, "lr_schedule.npy")
-        np.save(path_, np.array(self._lr_db_curve))
+    # def flush_curves(self):
+    #     path_ = os.path.join(self._params["model_prefix"], "loss_info")
+    #     os.makedirs(path_, exist_ok=True)
+    #     path_ = os.path.join(path_, "eval_time_range.npy")
+    #     np.save(path_, np.concatenate(self._time_range_eval, axis=0))
+    #     path_ = os.path.join(path_, "lr_schedule.npy")
+    #     np.save(path_, np.array(self._lr_db_curve))
 
     def update_learning_rate(self, epoch_step, mode="stepwise"):
         """Update learning rate handler updating only when the mode matches."""
@@ -323,67 +323,67 @@ class ModelFn(object):
         pass
 
     # TODO: !!!To modify this seq due to the output of model
-    def validation_srnn_ms(self, sample, decoder_pred):
-        # the data was flatened from a sequence of size
-        # [n_actions, n_seeds, target_length, pose_size]
-        # seq_shape = (self
+    # def validation_srnn_ms(self, sample, decoder_pred):
+    #     # the data was flatened from a sequence of size
+    #     # [n_actions, n_seeds, target_length, pose_size]
+    #     # seq_shape = (self
 
-        srnn_gts = sample["decoder_outputs"]
-        decoder_pred_ = decoder_pred.cpu().numpy()
-        decoder_pred_ = decoder_pred_.reshape(seq_shape)
-        do_remove = self._params["remove_low_std"]
-        mean_eval_error_dict = {}
+    #     srnn_gts = sample["decoder_outputs"]
+    #     decoder_pred_ = decoder_pred.cpu().numpy()
+    #     decoder_pred_ = decoder_pred_.reshape(seq_shape)
+    #     do_remove = self._params["remove_low_std"]
+    #     mean_eval_error_dict = {}
 
-        self.print_table_header()
-        eval_ms_mean = []
+    #     self.print_table_header()
+    #     eval_ms_mean = []
 
-        decoder_pred = decoder_pred_[:, :, :, :]
+    #     decoder_pred = decoder_pred_[:, :, :, :]
 
-        if self._params["dataset"] == "h36m":
-            # seq_len x n_seeds x pose_dim
-            decoder_pred = decoder_pred.transpose([1, 0, 2])
+    #     if self._params["dataset"] == "h36m":
+    #         # seq_len x n_seeds x pose_dim
+    #         decoder_pred = decoder_pred.transpose([1, 0, 2])
 
-        # a list or a vector of length n_seeds
-        # each entry of: shape seq_len x complete_pose_dim (H36M == 99)
-        srnn_pred = self._eval_dataset_fn.dataset.post_process_to_(decoder_pred)
+    #     # a list or a vector of length n_seeds
+    #     # each entry of: shape seq_len x complete_pose_dim (H36M == 99)
+    #     srnn_pred = self._eval_dataset_fn.dataset.post_process_to_(decoder_pred)
 
-        # n_seeds x seq_len
-        mean_errors = np.zeros(
-            (self._params["eval_num_seeds"], self._params["target_seq_len"])
-        )
+    #     # n_seeds x seq_len
+    #     mean_errors = np.zeros(
+    #         (self._params["eval_num_seeds"], self._params["target_seq_len"])
+    #     )
 
-        # Training is done in exponential map or rotation matrix or quaternion
-        # but the error is reported in Euler angles, as in previous work [3,4,5]
-        for i in np.arange(self._params["eval_num_seeds"]):
-            # seq_len x complete_pose_dim (H36M==99)
-            eulerchannels_pred = srnn_pred[i]
+    #     # Training is done in exponential map or rotation matrix or quaternion
+    #     # but the error is reported in Euler angles, as in previous work [3,4,5]
+    #     for i in np.arange(self._params["eval_num_seeds"]):
+    #         # seq_len x complete_pose_dim (H36M==99)
+    #         eulerchannels_pred = srnn_pred[i]
 
-            # n_seeds x seq_len x complete_pose_dim (H36M==96)
-            action_gt = srnn_gts
-            # seq_len x complete_pose_dim (H36M==96)
-            gt_i = np.copy(action_gt.squeeze()[i].numpy())
-            # Only remove global rotation. Global translation was removed before
-            gt_i[:, 0:3] = 0
+    #         # n_seeds x seq_len x complete_pose_dim (H36M==96)
+    #         action_gt = srnn_gts
+    #         # seq_len x complete_pose_dim (H36M==96)
+    #         gt_i = np.copy(action_gt.squeeze()[i].numpy())
+    #         # Only remove global rotation. Global translation was removed before
+    #         gt_i[:, 0:3] = 0
 
-            # here [2,4,5] remove data based on the std of the batch THIS IS WEIRD!
-            # (seq_len, 96) - (seq_len, 96)
-            idx_to_use = np.where(np.std(gt_i, 0) > 1e-4)[0]
-            euc_error = np.power(
-                gt_i[:, idx_to_use] - eulerchannels_pred[:, idx_to_use], 2
-            )
+    #         # here [2,4,5] remove data based on the std of the batch THIS IS WEIRD!
+    #         # (seq_len, 96) - (seq_len, 96)
+    #         idx_to_use = np.where(np.std(gt_i, 0) > 1e-4)[0]
+    #         euc_error = np.power(
+    #             gt_i[:, idx_to_use] - eulerchannels_pred[:, idx_to_use], 2
+    #         )
 
-            # shape: seq_len
-            euc_error = np.sum(euc_error, 1)
-            # shape: seq_len
-            euc_error = np.sqrt(euc_error)
-            mean_errors[i, :] = euc_error
+    #         # shape: seq_len
+    #         euc_error = np.sum(euc_error, 1)
+    #         # shape: seq_len
+    #         euc_error = np.sqrt(euc_error)
+    #         mean_errors[i, :] = euc_error
 
-        # This is simply the mean error over the eval_num_seeds examples
-        # with shape [eval_num_seeds]
-        mean_mean_errors = np.mean(mean_errors, 0)
-        mean_eval_error_dict = self.print_range_summary(mean_mean_errors)
+    #     # This is simply the mean error over the eval_num_seeds examples
+    #     # with shape [eval_num_seeds]
+    #     mean_mean_errors = np.mean(mean_errors, 0)
+    #     mean_eval_error_dict = self.print_range_summary(mean_mean_errors)
 
-        return mean_eval_error_dict
+    #     return mean_eval_error_dict
 
     # TODO: modify this evaluate function!!!
     @torch.no_grad()
@@ -430,52 +430,52 @@ class ModelFn(object):
 
         return eval_loss
 
-    def compute_mean_average_precision(self, prediction, target):
-        pred = np.squeeze(prediction)
-        tgt = np.squeeze(target)
-        T, D = pred.shape
+    # def compute_mean_average_precision(self, prediction, target):
+    #     pred = np.squeeze(prediction)
+    #     tgt = np.squeeze(target)
+    #     T, D = pred.shape
 
-        pred = self._eval_dataset_fn.dataset.unormalize_sequence(pred)
-        tgt = self._eval_dataset_fn.dataset.unormalize_sequence(tgt)
+    #     pred = self._eval_dataset_fn.dataset.unormalize_sequence(pred)
+    #     tgt = self._eval_dataset_fn.dataset.unormalize_sequence(tgt)
 
-        # num_frames x num_joints x 3
-        pred = pred.reshape((T, -1, 3))
-        tgt = tgt.reshape((T, -1, 3))
+    #     # num_frames x num_joints x 3
+    #     pred = pred.reshape((T, -1, 3))
+    #     tgt = tgt.reshape((T, -1, 3))
 
-        # compute the norm for the last axis: (x,y,z) coordinates
-        # num_frames x num_joints
-        TP = np.linalg.norm(pred - tgt, axis=-1) <= _MAP_TRESH
-        TP = TP.astype(int)
-        FN = np.logical_not(TP).astype(int)
+    #     # compute the norm for the last axis: (x,y,z) coordinates
+    #     # num_frames x num_joints
+    #     TP = np.linalg.norm(pred - tgt, axis=-1) <= _MAP_TRESH
+    #     TP = TP.astype(int)
+    #     FN = np.logical_not(TP).astype(int)
 
-        # num_joints
-        TP = np.sum(TP, axis=0)
-        FN = np.sum(FN, axis=0)
-        # compute recall for each joint
-        recall = TP / (TP + FN)
-        # average over joints
-        mAP = np.mean(recall)
-        return mAP, TP, FN
+    #     # num_joints
+    #     TP = np.sum(TP, axis=0)
+    #     FN = np.sum(FN, axis=0)
+    #     # compute recall for each joint
+    #     recall = TP / (TP + FN)
+    #     # average over joints
+    #     mAP = np.mean(recall)
+    #     return mAP, TP, FN
 
-    def compute_MPJPE(self, prediction, target):
-        pred = np.squeeze(prediction)
-        tgt = np.squeeze(target)
-        T, D = pred.shape
+    # def compute_MPJPE(self, prediction, target):
+    #     pred = np.squeeze(prediction)
+    #     tgt = np.squeeze(target)
+    #     T, D = pred.shape
 
-        pred = self._eval_dataset_fn.dataset.unormalize_sequence(pred)
-        tgt = self._eval_dataset_fn.dataset.unormalize_sequence(tgt)
+    #     pred = self._eval_dataset_fn.dataset.unormalize_sequence(pred)
+    #     tgt = self._eval_dataset_fn.dataset.unormalize_sequence(tgt)
 
-        # num_frames x num_joints x 3
-        pred = pred.reshape((T, -1, 3))
-        tgt = tgt.reshape((T, -1, 3))
+    #     # num_frames x num_joints x 3
+    #     pred = pred.reshape((T, -1, 3))
+    #     tgt = tgt.reshape((T, -1, 3))
 
-        # compute the norm for the last axis: (x,y,z) coordinates
-        # num_frames x num_joints
-        norm = np.linalg.norm(pred - tgt, axis=-1)
+    #     # compute the norm for the last axis: (x,y,z) coordinates
+    #     # num_frames x num_joints
+    #     norm = np.linalg.norm(pred - tgt, axis=-1)
 
-        # num_joints
-        MPJPE = np.mean(norm, axis=0)
-        return MPJPE
+    #     # num_joints
+    #     MPJPE = np.mean(norm, axis=0)
+    #     return MPJPE
 
     # TODO: match the dataset_factory with waymodataset!
     def dataset_factory(params):
