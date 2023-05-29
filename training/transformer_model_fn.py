@@ -40,11 +40,13 @@ from torch.utils.tensorboard import SummaryWriter
 thispath = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, thispath+"/../")
 
-import training.seq2seq_model_fn as seq2seq_model_fn
+# import training.seq2seq_model_fn as seq2seq_model_fn
+import training.seq2seq_model_modified as seq2seq_model_fn
 import models.PoseTransformer as PoseTransformer
 import models.PoseEncoderDecoder as PoseEncoderDecoder
 import data.H36MDataset_v2 as H36MDataset_v2
 import data.NTURGDDataset as NTURGDDataset
+import data.MyWaymoDataset as WaymoDataset
 import utils.utils as utils
 
 _DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -73,13 +75,6 @@ class POTRModelFn(seq2seq_model_fn.ModelFn):
     """Computes entropy loss from logits between predictions and class."""
     return nn.functional.cross_entropy(logits, class_gt, reduction='mean')
 
-  def compute_class_loss(self, class_logits, class_gt):
-    """Computes the class loss for each of the decoder layers predictions or memory."""
-    class_loss = 0.0
-    for l in range(len(class_logits)):
-      class_loss += self.loss_activity(class_logits[l], class_gt)
-
-    return class_loss/len(class_logits)
 
   def select_loss_fn(self):
     if self._params['loss_fn'] == 'mse':
@@ -127,6 +122,8 @@ def dataset_factory(params):
     return H36MDataset_v2.dataset_factory(params)
   elif params['dataset'] == 'ntu_rgbd':
     return NTURGDDataset.dataset_factory(params)
+  elif params['dataset'] == 'waymo':
+    return WaymoDataset.dataset_factory(params)
   else:
     raise ValueError('Unknown dataset {}'.format(params['dataset']))
 
@@ -135,7 +132,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--model_prefix', type=str, default='')
   parser.add_argument('--batch_size', type=int, default=16)
-  parser.add_argument('--data_path', type=str)
+  parser.add_argument('--data_path', type=str, default='./data/train/train_30_20')
   parser.add_argument('--learning_rate', type=float, default=1e-5)
   parser.add_argument('--max_epochs', type=int, default=500)
   parser.add_argument('--steps_per_epoch', type=int, default=200)
@@ -150,8 +147,8 @@ if __name__ == '__main__':
   parser.add_argument('--num_heads', type=int, default=4)
   parser.add_argument('--dim_ffn', type=int, default=2048)
   parser.add_argument('--dropout', type=float, default=0.3)
-  parser.add_argument('--source_seq_len', type=int, default=50)                  
-  parser.add_argument('--target_seq_len', type=int, default=25)
+  parser.add_argument('--source_seq_len', type=int, default=30)                  
+  parser.add_argument('--target_seq_len', type=int, default=20)
   parser.add_argument('--max_gradient_norm', type=float, default=0.1)
   parser.add_argument('--lr_step_size',type=int, default=400)
   parser.add_argument('--learning_rate_fn',type=str, default='step')
@@ -170,9 +167,9 @@ if __name__ == '__main__':
   parser.add_argument('--use_memory', action='store_true')
   parser.add_argument('--query_selection',action='store_true')
   parser.add_argument('--activity_weight', type=float, default=1.0)
-  parser.add_argument('--pose_embedding_type', type=str, default='gcn_enc')
+  parser.add_argument('--pose_embedding_type', type=str, default='simple')
   parser.add_argument('--encoder_ckpt', type=str, default=None)
-  parser.add_argument('--dataset', type=str, default='h36m_v2')
+  parser.add_argument('--dataset', type=str, default='waymo')
   parser.add_argument('--skip_rate', type=int, default=5)
   parser.add_argument('--eval_num_seeds', type=int, default=_NSEEDS)
   parser.add_argument('--copy_method', type=str, default=None)
@@ -184,8 +181,11 @@ if __name__ == '__main__':
   params = vars(args)
   train_dataset_fn, eval_dataset_fn = dataset_factory(params)
 
+  #TODO: Change this dim to build the encoder and decoder 
+  #detail info in /models/PoseEncoderDecoder.pose_encoder_mlp&pose_decoder_mlp
   params['input_dim'] = train_dataset_fn.dataset._data_dim
   params['pose_dim'] = train_dataset_fn.dataset._pose_dim
+
   pose_encoder_fn, pose_decoder_fn = \
       PoseEncoderDecoder.select_pose_encoder_decoder_fn(params)
 

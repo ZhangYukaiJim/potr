@@ -70,9 +70,46 @@ class MyWaymoDataset(torch.utils.data.Dataset):
         return (box_seq, hkp_seq)
 
 
+def dataset_factory(params):
+    """Defines the datasets that will be used for training and validation."""
+    params['virtual_dataset_size'] = params['steps_per_epoch']*params['batch_size']
+    waymo_dataset = MyWaymoDataset(
+        data_dir="./data/train/train_30_20",
+        source_length=params['source_seq_len'],
+        target_length=params['target_seq_len'],
+        normalize=True,
+    )
+
+    train_length = int(waymo_dataset.__len__() * 0.8)
+    test_length = waymo_dataset.__len__() - train_length
+    train_dataset, eval_dataset = data.random_split(
+        waymo_dataset, [train_length, test_length]
+    )
+
+    train_dataset_fn = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=1,
+        shuffle=False,
+        num_workers=1,
+        drop_last=True,
+    )
+    
+    eval_dataset_fn = torch.utils.data.DataLoader(
+        eval_dataset,
+        batch_size=1,
+        shuffle=True,
+        num_workers=1,
+        drop_last=True,
+    #      collate_fn=collate_fn,
+  ) 
+
+    return train_dataset_fn, eval_dataset_fn
+
+
 if __name__ == "__main__":
     waymo_dataset = MyWaymoDataset(
-        data_dir="/home/yukai/Desktop/potr/data/my_waymo/train/train_30_20",
+        data_dir="/home/amanda/proj_2/potr/data/train/train_30_20",
+
         source_length=30,
         target_length=20,
         normalize=True,
@@ -93,6 +130,6 @@ if __name__ == "__main__":
     )
 
     box_seq, hkp_seq = next(iter(train_dataset_fn))
-with np.printoptions(precision=3, suppress=True):
-    print(train_dataset.__len__())
-    print(test_dataset.__len__())
+    with np.printoptions(precision=3, suppress=True):
+        print(train_dataset.__len__())
+        print(test_dataset.__len__())
